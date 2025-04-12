@@ -1,0 +1,1 @@
+# This file marks the images package, which can be used to load image resources for the game.
