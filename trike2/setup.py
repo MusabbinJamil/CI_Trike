@@ -3,12 +3,12 @@ from setuptools import setup, find_packages
 setup(
     name='trike',
     version='0.1.0',
-    author='Your Name',
-    author_email='your.email@example.com',
+    author='Musab',
+    author_email='musabjamil3@gmail.com',
     description='A combinatorial abstract strategy game for two players.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url='https://github.com/yourusername/trike',
+    url='https://github.com/MusabbinJamil/CI_trike',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     classifiers=[

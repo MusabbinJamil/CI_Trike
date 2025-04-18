@@ -30,10 +30,16 @@ pip install -r requirements.txt
 
 ## Running the Game
 
-To start a game of Trike, execute the following command:
+To start a game of Trike using the command-line interface, execute:
 
 ```
 python -m src.game
+```
+
+To launch the graphical user interface (GUI), run:
+
+```
+python src/gui.py
 ```
 
 ## Running Tests
@@ -54,7 +60,9 @@ trike
 │   ├── player.py
 │   ├── pawn.py
 │   ├── checker.py
-│   └── utils.py
+│   ├── utils.py
+|   ├── gui.py
+|   └── __main__.py
 ├── tests
 │   ├── test_board.py
 │   ├── test_game.py

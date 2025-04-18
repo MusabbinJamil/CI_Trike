@@ -1,7 +1,7 @@
 import tkinter as tk
 import tkinter.messagebox
 import math
-from .game import Game
+from src.game import Game
 import tkinter.simpledialog
 
 HEX_SIZE = 30  # pixels
