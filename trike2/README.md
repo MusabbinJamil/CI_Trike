@@ -4,12 +4,23 @@ Trike is a combinatorial abstract strategy game designed for two players. The ga
 
 ## Game Overview
 
-- **Players**: 2
+- **Players**: 2 (Human vs Human, Human vs AI, or AI vs AI)
 - **Objective**: Maneuver the neutral pawn into your own trap while preventing your opponent from doing the same.
 - **Game Board**: The game is played on an equilateral triangular hexagon-tessellated grid.
 - **Components**: 
   - A neutral pawn
   - Black and white checkers
+
+## Game Features
+
+- Multiple themes for game visuals
+- AI opponents with different difficulty levels:
+  - RandomAI: Makes random legal moves
+  - MinimaxAI-Easy: Uses Minimax algorithm with limited search depth
+  - MinimaxAI-Hard: Uses Minimax algorithm with greater search depth
+  - MCTSAI: Uses Monte Carlo Tree Search for decision making
+- Scoreboard to track player wins
+- Pie rule implementation for balanced gameplay
 
 ## Rules
 
@@ -30,16 +41,15 @@ pip install -r requirements.txt
 
 ## Running the Game
 
-Go to dist folder and open gui.exe
-
-to create distribution run, execute:
+To launch the graphical user interface (GUI), run:
 
 ```
-pyinstaller --onefile gui.py
+python src/guiv2.py
 ```
-or this
+
+For the older version of the GUI:
 ```
-pyinstaller --onefile --clean --paths=src src/gui.py
+python src/gui.py
 ```
 
 To start a game of Trike using the command-line interface, execute:
@@ -48,11 +58,20 @@ To start a game of Trike using the command-line interface, execute:
 python -m src.game
 ```
 
-To launch the graphical user interface (GUI), run:
+## Creating Executable Distribution
+
+To create a standalone executable for the latest GUI version:
 
 ```
-python src/gui.py
+pyinstaller --onefile --clean --paths=src --name Trike src/guiv2.py
 ```
+
+For the older GUI version:
+```
+pyinstaller --onefile --clean --paths=src src/gui.py
+```
+
+After running PyInstaller, you can find the executable in the `dist` folder.
 
 ## Running Tests
 
@@ -65,7 +84,7 @@ pytest
 ## Project Structure
 
 ```
-trike
+trike2
 ├── src
 │   ├── board.py
 │   ├── game.py
@@ -73,8 +92,12 @@ trike
 │   ├── pawn.py
 │   ├── checker.py
 │   ├── utils.py
-|   ├── gui.py
-|   └── __main__.py
+│   ├── gui.py
+│   ├── guiv2.py
+│   └── __main__.py
+├── trike_ai
+│   ├── agents.py
+│   └── algorithms.py
 ├── tests
 │   ├── test_board.py
 │   ├── test_game.py
