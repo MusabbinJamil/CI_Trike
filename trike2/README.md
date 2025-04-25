@@ -30,6 +30,18 @@ pip install -r requirements.txt
 
 ## Running the Game
 
+Go to dist folder and open gui.exe
+
+to create distribution run, execute:
+
+```
+pyinstaller --onefile gui.py
+```
+or this
+```
+pyinstaller --onefile --clean --paths=src src/gui.py
+```
+
 To start a game of Trike using the command-line interface, execute:
 
 ```

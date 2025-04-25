@@ -4,7 +4,10 @@ import math
 from src.game import Game
 import tkinter.simpledialog
 
-HEX_SIZE = 30  # pixels
+HEX_SIZE = 30
+
+FONT_LARGE = ("Arial", 16)
+FONT_BUTTON = ("Arial", 14)
 
 class TrikeGUI:
     def __init__(self, game):
@@ -40,7 +43,7 @@ class TrikeGUI:
 
         self.selected = None
         self.canvas.bind("<Button-1>", self.on_click)
-        self.status = tk.Label(self.root, text="Trike Game")
+        self.status = tk.Label(self.root, text="Trike Game", font=FONT_LARGE)
         self.status.pack()
         self.game_over = False
 
@@ -55,14 +58,19 @@ class TrikeGUI:
 
         btn_width = 12  # Set a fixed width for all buttons
 
-        self.new_game_btn = tk.Button(self.button_frame, text="New Game", command=self.new_game, width=btn_width)
+        self.new_game_btn = tk.Button(self.button_frame, text="New Game", command=self.new_game, width=btn_width, font=FONT_BUTTON)
         self.new_game_btn.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        self.reset_btn = tk.Button(self.button_frame, text="Reset", command=self.reset_game, width=btn_width)
+        self.reset_btn = tk.Button(self.button_frame, text="Reset", command=self.reset_game, width=btn_width, font=FONT_BUTTON)
         self.reset_btn.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-        self.quit_btn = tk.Button(self.button_frame, text="Quit", command=self.root.quit, width=btn_width)
-        self.quit_btn.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+        self.instructions_btn = tk.Button(
+            self.button_frame, text="Instructions", command=self.show_instructions, width=btn_width, font=FONT_BUTTON
+        )
+        self.instructions_btn.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+
+        self.quit_btn = tk.Button(self.button_frame, text="Quit", command=self.root.quit, width=btn_width, font=FONT_BUTTON)
+        self.quit_btn.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
 
         self.valid_moves = set()
         self.draw_board()
@@ -136,13 +144,20 @@ class TrikeGUI:
                 self.draw_board()
                 if self.game.pie_rule_available:
                     print("Offering pie rule to second player.")
-                    if tkinter.messagebox.askyesno("Pie Rule", "Do you want to swap colors?"):
+                    swap_msg = (
+                        f"Do you want to swap colors with Player 1 "
+                        f"({self.game.players[0].color.capitalize()})?"
+                    )
+                    if tkinter.messagebox.askyesno("Pie Rule", swap_msg):
                         print("Pie rule used: players swapped.")
                         self.game.players.reverse()
                         self.game.current_player_index = 1
                     else:
                         print("Pie rule declined.")
+                        # --- Fix: Advance to Player 2 if pie rule declined ---
+                        self.game.current_player_index = 1
                     self.game.pie_rule_available = False
+                    return
         
         if self.game.board.is_pawn_trapped():
             print("Pawn is trapped. Game over.")
@@ -180,19 +195,38 @@ class TrikeGUI:
         print(f"Black score: {black_score}, White score: {white_score}")
         if black_score > white_score:
             winner = "Black"
+            winner_msg = "Player 1 (Black)" if self.game.players[0].color == "black" else "Player 2 (Black)"
         elif white_score > black_score:
             winner = "White"
+            winner_msg = "Player 1 (White)" if self.game.players[0].color == "white" else "Player 2 (White)"
         else:
             winner = "Draw"
+            winner_msg = "It's a draw!"
+
         print(f"Winner: {winner}")
         self.status.config(text=f"Game Over! Black: {black_score}, White: {white_score}. Winner: {winner}")
 
         self.draw_board()
         self.root.update_idletasks()
 
-        # Show info dialog only, don't hide buttons
-        msg = f"Game over!\nBlack: {black_score}, White: {white_score}\nWinner: {winner}"
-        tkinter.messagebox.showinfo("Game Over", msg)
+        # Improved end message
+        if winner == "Draw":
+            msg = (
+                f"Game Over!\n\n"
+                f"Black: {black_score}\n"
+                f"White: {white_score}\n\n"
+                f"The game is a draw!\n\n"
+                f"Thank you for playing Trike!"
+            )
+        else:
+            msg = (
+                f"Game Over!\n\n"
+                f"Black: {black_score}\n"
+                f"White: {white_score}\n\n"
+                f"Congratulations, {winner_msg} wins!\n\n"
+                f"Thank you for playing Trike!"
+            )
+        self.show_custom_message("Game Over", msg)
         self.game_over = True
 
     def reset_game(self):
@@ -209,6 +243,7 @@ class TrikeGUI:
                 super().__init__(parent)
                 self.title("Welcome to Trike")
                 self.result = None
+
                 instructions = (
                     "Trike Game Instructions:\n"
                     "- Players take turns placing checkers and moving the pawn.\n"
@@ -217,13 +252,13 @@ class TrikeGUI:
                     "- The winner is the player with the most checkers around the pawn.\n"
                     "- Pie rule: After the first move, Player 2 can swap colors.\n"
                 )
-                tk.Label(self, text=instructions, justify=tk.LEFT, anchor="nw", font=("Arial", 11), bg="lightyellow", width=60, wraplength=500).pack(padx=20, pady=10)
-                tk.Label(self, text="Enter board size (7-19):", font=("Arial", 11)).pack(pady=(10,0))
+                tk.Label(self, text=instructions, justify=tk.LEFT, anchor="nw", font=FONT_LARGE, bg="lightyellow", width=60, wraplength=500).pack(padx=20, pady=10)
+                tk.Label(self, text="Enter board size (7-19):", font=FONT_LARGE).pack(pady=(10,0))
                 self.size_var = tk.StringVar()
-                entry = tk.Entry(self, textvariable=self.size_var, font=("Arial", 11))
+                entry = tk.Entry(self, textvariable=self.size_var, font=FONT_LARGE)
                 entry.pack(pady=5)
                 entry.focus()
-                tk.Button(self, text="Start Game", command=self.on_start, font=("Arial", 11)).pack(pady=10)
+                tk.Button(self, text="Start Game", command=self.on_start, font=FONT_BUTTON).pack(pady=10)
                 self.bind("<Return>", lambda e: self.on_start())
                 self.grab_set()
                 self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -235,9 +270,9 @@ class TrikeGUI:
                         self.result = size
                         self.destroy()
                     else:
-                        tk.messagebox.showerror("Invalid Size", "Please enter a number between 7 and 19.")
+                        self.show_custom_message("Invalid Size", "Please enter a number between 7 and 19.")
                 except ValueError:
-                    tk.messagebox.showerror("Invalid Input", "Please enter a valid integer.")
+                    self.show_custom_message("Invalid Input", "Please enter a valid integer.")
 
             def on_close(self):
                 self.result = None
@@ -305,6 +340,40 @@ class TrikeGUI:
 
     def run(self):
         self.root.mainloop()
+    
+    def show_instructions(self):
+        instructions = (
+            "Trike Game Instructions:\n"
+            "- Players take turns placing checkers and moving the pawn.\n"
+            "- The pawn must move in a straight line to an empty hex.\n"
+            "- The game ends when the pawn is trapped.\n"
+            "- The winner is the player with the most checkers around the pawn.\n"
+            "- Pie rule: After the first move, Player 2 can swap colors.\n"
+        )
+        
+        instr_win = tk.Toplevel(self.root)
+        instr_win.title("Instructions")
+        instr_win.resizable(False, False)
+        tk.Label(
+            instr_win,
+            text=instructions,
+            justify=tk.LEFT,
+            anchor="nw",
+            font=FONT_LARGE,
+            bg="lightyellow",
+            width=60,
+            wraplength=500
+        ).pack(padx=20, pady=20)
+        tk.Button(instr_win, text="Close", command=instr_win.destroy, font=FONT_BUTTON).pack(pady=(0, 20))
+        instr_win.grab_set()
+    
+    def show_custom_message(self, title, message):
+        win = tk.Toplevel(self.root)
+        win.title(title)
+       
+        tk.Label(win, text=message, font=FONT_LARGE, wraplength=400).pack(padx=20, pady=20)
+        tk.Button(win, text="OK", font=FONT_BUTTON, command=win.destroy).pack(pady=(0, 20))
+        win.grab_set()
 
 if __name__ == "__main__":
 
@@ -321,13 +390,14 @@ if __name__ == "__main__":
                 "- The winner is the player with the most checkers around the pawn.\n"
                 "- Pie rule: After the first move, Player 2 can swap colors.\n"
             )
-            tk.Label(self, text=instructions, justify=tk.LEFT, anchor="nw", font=("Arial", 11), bg="lightyellow", width=60, wraplength=500).pack(padx=20, pady=10)
-            tk.Label(self, text="Enter board size (7-19):", font=("Arial", 11)).pack(pady=(10,0))
+            
+            tk.Label(self, text=instructions, justify=tk.LEFT, anchor="nw", font=FONT_LARGE, bg="lightyellow", width=60, wraplength=500).pack(padx=20, pady=10)
+            tk.Label(self, text="Enter board size (7-19):", font=FONT_LARGE).pack(pady=(10,0))
             self.size_var = tk.StringVar()
-            entry = tk.Entry(self, textvariable=self.size_var, font=("Arial", 11))
+            entry = tk.Entry(self, textvariable=self.size_var, font=FONT_LARGE)
             entry.pack(pady=5)
             entry.focus()
-            tk.Button(self, text="Start Game", command=self.on_start, font=("Arial", 11)).pack(pady=10)
+            tk.Button(self, text="Start Game", command=self.on_start, font=FONT_BUTTON).pack(pady=10)
             self.bind("<Return>", lambda e: self.on_start())
             self.grab_set()
             self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -339,9 +409,9 @@ if __name__ == "__main__":
                     self.result = size
                     self.destroy()
                 else:
-                    tk.messagebox.showerror("Invalid Size", "Please enter a number between 7 and 19.")
+                    self.show_custom_message("Invalid Size", "Please enter a number between 7 and 19.")
             except ValueError:
-                tk.messagebox.showerror("Invalid Input", "Please enter a valid integer.")
+                self.show_custom_message("Invalid Input", "Please enter a valid integer.")
 
         def on_close(self):
             self.result = None
