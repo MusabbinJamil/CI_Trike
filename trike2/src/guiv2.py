@@ -5,6 +5,10 @@ from src.game import Game
 import tkinter.simpledialog
 import json
 import os
+# Add these imports for AI support
+from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI
+import threading
+import time
 
 HEX_SIZE = 30
 
@@ -14,7 +18,7 @@ FONT_BUTTON = ("Arial", 14)
 class TrikeGUI:
     def __init__(self, game=None):
         self.game = game
-        
+    
         # Initialize root window
         self.root = tk.Tk()
         self.root.title("Trike")
@@ -70,6 +74,14 @@ class TrikeGUI:
         # Player name and score tracking
         self.player_names = ["Player 1", "Player 2"]
         self.scores_file = "trike_scores.json"
+
+        # Initialize AI players (will be set in start_game)
+        self.ai_players = [None, None]
+        
+        # Initialize StringVar for player types (will be created in show_setup_panel)
+        self.player1_type = tk.StringVar(value="Human")
+        self.player2_type = tk.StringVar(value="Human")
+        
         
         # Create main container frame
         self.main_container = tk.Frame(self.root)
@@ -291,9 +303,10 @@ class TrikeGUI:
             color = "purple" if (q, r) in self.valid_moves else "gray"
             self.draw_hex(q, r, color=color)
         if not (self.game_over):
-            player1 = f"{self.player_names[0]} ({self.game.players[0].color.capitalize()})"
-            player2 = f"{self.player_names[1]} ({self.game.players[1].color.capitalize()})"
-            current = f"{self.player_names[self.game.current_player_index]} ({self.game.players[self.game.current_player_index].color.capitalize()})"
+            player1 = f"{self.get_player_display_name(0)} ({self.game.players[0].color.capitalize()})"
+            player2 = f"{self.get_player_display_name(1)} ({self.game.players[1].color.capitalize()})"
+            current_idx = self.game.current_player_index
+            current = f"{self.get_player_display_name(current_idx)} ({self.game.players[current_idx].color.capitalize()})"
             self.status.config(
                 text=f"{player1} vs {player2}    |    {current}'s turn"
             )
@@ -329,19 +342,37 @@ class TrikeGUI:
                 self.draw_board()
                 if self.game.pie_rule_available:
                     print("Offering pie rule to second player.")
-                    swap_msg = (
-                        f"Do you want to swap colors with Player 1 "
-                        f"({self.game.players[0].color.capitalize()})?"
-                    )
-                    if tkinter.messagebox.askyesno("Pie Rule", swap_msg):
-                        print("Pie rule used: players swapped.")
-                        self.game.players.reverse()
-                        self.game.current_player_index = 1
+                    
+                    # If player 2 is human, offer pie rule
+                    if self.ai_players[1] is None:
+                        swap_msg = (
+                            f"Do you want to swap colors with Player 1 "
+                            f"({self.game.players[0].color.capitalize()})?"
+                        )
+                        if tkinter.messagebox.askyesno("Pie Rule", swap_msg):
+                            print("Pie rule used: players swapped.")
+                            self.game.players.reverse()
+                            self.game.current_player_index = 1
+                        else:
+                            print("Pie rule declined.")
+                            # Advance to Player 2 if pie rule declined
+                            self.game.current_player_index = 1
                     else:
-                        print("Pie rule declined.")
-                        # --- Fix: Advance to Player 2 if pie rule declined ---
-                        self.game.current_player_index = 1
+                        # AI player 2 decides on pie rule (50% chance)
+                        import random
+                        if random.random() > 0.5:
+                            print("AI used pie rule: players swapped.")
+                            self.game.players.reverse()
+                            self.game.current_player_index = 1
+                            self.status.config(text=f"{self.player_names[1]} (AI) used the pie rule!")
+                            self.root.update()
+                            time.sleep(1)  # Show the message briefly
+                        else:
+                            print("AI declined pie rule.")
+                            self.game.current_player_index = 1
+                    
                     self.game.pie_rule_available = False
+                    self.check_ai_turn()
                     return
         
         if self.game.board.is_pawn_trapped():
@@ -364,6 +395,9 @@ class TrikeGUI:
                 else:
                     self.game.current_player_index = (self.game.current_player_index + 1) % 2
                     print(f"Next turn: {self.game.players[self.game.current_player_index].color}")
+                    self.draw_board()
+                    # Check if it's an AI's turn now
+                    self.check_ai_turn()
                 self.draw_board()
             else:
                 print(f"Invalid move attempted to ({q}, {r})")
@@ -377,6 +411,14 @@ class TrikeGUI:
             if self.game.board.is_valid_move(q_from, r_from, q, r):
                 self.valid_moves.add((q, r))
     
+    def update_player_name_from_ai(self, player_type, player_index):
+        """Update player name field based on selected AI type"""
+        if player_type != "Human":
+            if player_index == 0:
+                self.player1_name.set(player_type)
+            else:
+                self.player2_name.set(player_type)
+    
     def show_setup_panel(self):
         # Hide other panels
         self.game_panel.pack_forget()
@@ -387,7 +429,7 @@ class TrikeGUI:
         
         # Clear any existing name fields (to avoid duplicates on reset)
         for widget in self.setup_panel.winfo_children():
-            if hasattr(widget, 'player_name_frame') or hasattr(widget, 'theme_frame'):
+            if hasattr(widget, 'player_name_frame') or hasattr(widget, 'theme_frame') or hasattr(widget, 'ai_frame'):
                 widget.destroy()
         
         # Add player name input fields
@@ -427,30 +469,46 @@ class TrikeGUI:
             width=15
         ).grid(row=1, column=1, padx=5, pady=5)
         
-        # Add theme selection dropdown
-        theme_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
-        theme_frame.theme_frame = True  # Mark for identification
-        theme_frame.pack(pady=10)
+        # Add AI selection options
+        ai_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
+        ai_frame.ai_frame = True  # Mark for identification
+        ai_frame.pack(pady=10)
         
+        # Player 1 AI selection with callback
         tk.Label(
-            theme_frame,
-            text="Select Theme:",
+            ai_frame,
+            text="Player 1 Type:",
             font=FONT_LARGE,
             bg=self.themes[self.current_theme]["panel_bg"]
         ).grid(row=0, column=0, sticky="e", padx=5, pady=5)
         
-        self.theme_var = tk.StringVar(value=self.current_theme)
-        theme_dropdown = tk.OptionMenu(
-            theme_frame,
-            self.theme_var,
-            *self.themes.keys(),
-            command=self.update_theme
+        self.player1_type = tk.StringVar(value="Human")
+        player1_options = tk.OptionMenu(
+            ai_frame,
+            self.player1_type,
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI",
+            command=lambda selection: self.update_player_name_from_ai(selection, 0)
         )
-        theme_dropdown.config(font=FONT_LARGE, width=15)
-        theme_dropdown.grid(row=0, column=1, padx=5, pady=5)
+        player1_options.config(font=FONT_LARGE, width=15)
+        player1_options.grid(row=0, column=1, padx=5, pady=5)
         
-        self.size_entry.focus()
-        self.root.bind("<Return>", lambda e: self.start_game())
+        # Player 2 AI selection with callback
+        tk.Label(
+            ai_frame,
+            text="Player 2 Type:",
+            font=FONT_LARGE,
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        
+        self.player2_type = tk.StringVar(value="Human")
+        player2_options = tk.OptionMenu(
+            ai_frame,
+            self.player2_type,
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI",
+            command=lambda selection: self.update_player_name_from_ai(selection, 1)
+        )
+        player2_options.config(font=FONT_LARGE, width=15)
+        player2_options.grid(row=1, column=1, padx=5, pady=5)
     
     def show_game_panel(self):
         # Hide other panels
@@ -521,6 +579,25 @@ class TrikeGUI:
             font=FONT_BUTTON,
             width=15
         ).pack(side=tk.LEFT, padx=10, pady=10)
+
+    def create_ai(self, ai_type, player_name):
+        """Create an AI player based on the selected type"""
+        try:
+            if ai_type == "RandomAI":
+                return RandomAI(name=player_name)
+            elif ai_type == "MinimaxAI-Easy":
+                return MinimaxAI(depth=2, name=player_name)
+            elif ai_type == "MinimaxAI-Hard":
+                return MinimaxAI(depth=3, name=player_name)
+            elif ai_type == "MCTSAI":
+                return MCTSAI(iterations=1000, name=player_name)
+            else:
+                return None
+        except Exception as e:
+            print(f"Error creating AI: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def start_game(self):
         try:
@@ -538,6 +615,31 @@ class TrikeGUI:
                 if not self.player_names[1].strip():
                     self.player_names[1] = "Player 2"
                 
+                # Create AI players if selected
+                self.ai_players = [None, None]
+                
+                # Player 1 AI
+                p1_type = self.player1_type.get()
+                if p1_type == "RandomAI":
+                    self.ai_players[0] = RandomAI(name=self.player_names[0])
+                elif p1_type == "MinimaxAI-Easy":
+                    self.ai_players[0] = MinimaxAI(depth=2, name=self.player_names[0])
+                elif p1_type == "MinimaxAI-Hard":
+                    self.ai_players[0] = MinimaxAI(depth=3, name=self.player_names[0])
+                elif p1_type == "MCTSAI":
+                    self.ai_players[0] = MCTSAI(iterations=1000, name=self.player_names[0])
+                    
+                # Player 2 AI
+                p2_type = self.player2_type.get()
+                if p2_type == "RandomAI":
+                    self.ai_players[1] = RandomAI(name=self.player_names[1])
+                elif p2_type == "MinimaxAI-Easy":
+                    self.ai_players[1] = MinimaxAI(depth=2, name=self.player_names[1])
+                elif p2_type == "MinimaxAI-Hard": 
+                    self.ai_players[1] = MinimaxAI(depth=3, name=self.player_names[1])
+                elif p2_type == "MCTSAI":
+                    self.ai_players[1] = MCTSAI(iterations=1000, name=self.player_names[1])
+                
                 # Update canvas dimensions
                 width = int(HEX_SIZE * 1.5 * size + HEX_SIZE * 2)
                 height = int(HEX_SIZE * math.sqrt(3) * size + HEX_SIZE * 2)
@@ -550,6 +652,9 @@ class TrikeGUI:
                 self.status.config(text="Trike Game")
                 self.draw_board()
                 self.show_game_panel()
+                
+                # Start AI's turn if current player is AI
+                self.check_ai_turn()
             else:
                 tk.messagebox.showerror("Invalid Size", "Please enter a number between 7 and 19.")
         except ValueError:
@@ -613,7 +718,7 @@ class TrikeGUI:
         if winner != "Draw":
             self.save_score(winner_name)
 
-        # Create result message
+        # Create result message with more emphasis on the winner
         if winner == "Draw":
             msg = (
                 f"Game Over!\n\n"
@@ -627,7 +732,8 @@ class TrikeGUI:
                 f"Game Over!\n\n"
                 f"{black_player} (Black): {black_score}\n"
                 f"{white_player} (White): {white_score}\n\n"
-                f"Congratulations, {winner_msg} wins!\n\n"
+                f"WINNER: {winner_name}\n"
+                f"Congratulations, {winner_msg}!\n\n"
                 f"Thank you for playing Trike!"
             )
         
@@ -777,6 +883,78 @@ class TrikeGUI:
         # Redraw board if game is in progress
         if self.game:
             self.draw_board()
+    
+    def check_ai_turn(self):
+        """Check if current player is AI and make a move if so"""
+        if self.game_over:
+            return
+            
+        current_idx = self.game.current_player_index
+        if self.ai_players[current_idx] is not None:
+            # Show thinking message
+            self.status.config(text=f"{self.player_names[current_idx]} (AI) is thinking...")
+            self.root.update()
+            
+            # Use a thread to prevent GUI freezing
+            threading.Thread(target=self.make_ai_move).start()
+
+    def make_ai_move(self):
+        """Have the AI make a move"""
+        current_idx = self.game.current_player_index
+        ai = self.ai_players[current_idx]
+        
+        # Short delay to show AI is "thinking"
+        time.sleep(0.5)
+        
+        # Create a game state copy for the AI
+        game_copy = self.game
+        
+        try:
+            if self.game.pawn.position is None:
+                # First move of the game - just pick a random valid position
+                import random
+                valid_positions = [pos for pos, checker in self.game.board.grid.items() if checker is None]
+                q, r = random.choice(valid_positions)
+            else:
+                # Use choose_move if it exists (this is the standard method name in many AI implementations)
+                if hasattr(ai, "choose_move"):
+                    q, r = ai.choose_move(game_copy)
+                # Try select_move as a second option
+                elif hasattr(ai, "select_move"):
+                    q, r = ai.select_move(game_copy)
+                # Use get_best_move as a fallback
+                elif hasattr(ai, "get_best_move"):
+                    q, r = ai.get_best_move(game_copy)
+                # Last resort - pick a random valid move
+                else:
+                    valid_moves = []
+                    q_from, r_from = self.game.pawn.position
+                    for (q_to, r_to) in self.game.board.grid:
+                        if self.game.board.is_valid_move(q_from, r_from, q_to, r_to):
+                            valid_moves.append((q_to, r_to))
+                    
+                    if valid_moves:
+                        q, r = random.choice(valid_moves)
+                    else:
+                        self.status.config(text="AI couldn't find a valid move")
+                        return
+            
+            # Execute the AI's move through the regular move handler
+            self.root.after(0, lambda: self.handle_move(q, r))
+        
+        except Exception as e:
+            print(f"AI move error: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            self.status.config(text=f"AI error: {str(e)}")
+
+    def get_player_display_name(self, player_idx):
+        """Get a display name for the player that indicates if they are AI"""
+        base_name = self.player_names[player_idx]
+        if self.ai_players[player_idx] is not None:
+            ai_type = self.player1_type.get() if player_idx == 0 else self.player2_type.get()
+            return f"{base_name} ({ai_type})"
+        return base_name
 
 if __name__ == "__main__":
     gui = TrikeGUI()
