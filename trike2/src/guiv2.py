@@ -6,7 +6,7 @@ import tkinter.simpledialog
 import json
 import os
 # Add these imports for AI support
-from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI
+from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI, HybridAI
 import threading
 import time
 
@@ -486,7 +486,7 @@ class TrikeGUI:
         player1_options = tk.OptionMenu(
             ai_frame,
             self.player1_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI","HybridAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 0)
         )
         player1_options.config(font=FONT_LARGE, width=15)
@@ -504,7 +504,7 @@ class TrikeGUI:
         player2_options = tk.OptionMenu(
             ai_frame,
             self.player2_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 1)
         )
         player2_options.config(font=FONT_LARGE, width=15)
@@ -591,6 +591,8 @@ class TrikeGUI:
                 return MinimaxAI(depth=3, name=player_name)
             elif ai_type == "MCTSAI":
                 return MCTSAI(iterations=1000, name=player_name)
+            elif ai_type == "HybridAI": 
+                return HybridAI(name=player_name)
             else:
                 return None
         except Exception as e:
@@ -628,7 +630,9 @@ class TrikeGUI:
                     self.ai_players[0] = MinimaxAI(depth=3, name=self.player_names[0])
                 elif p1_type == "MCTSAI":
                     self.ai_players[0] = MCTSAI(iterations=1000, name=self.player_names[0])
-                    
+                elif p1_type == "HybridAI":
+                    self.ai_players[0] = HybridAI(name=self.player_names[0])
+
                 # Player 2 AI
                 p2_type = self.player2_type.get()
                 if p2_type == "RandomAI":
@@ -639,7 +643,9 @@ class TrikeGUI:
                     self.ai_players[1] = MinimaxAI(depth=3, name=self.player_names[1])
                 elif p2_type == "MCTSAI":
                     self.ai_players[1] = MCTSAI(iterations=1000, name=self.player_names[1])
-                
+                elif p2_type == "HybridAI":
+                    self.ai_players[1] = HybridAI(name=self.player_names[1])
+
                 # Update canvas dimensions
                 width = int(HEX_SIZE * 1.5 * size + HEX_SIZE * 2)
                 height = int(HEX_SIZE * math.sqrt(3) * size + HEX_SIZE * 2)
