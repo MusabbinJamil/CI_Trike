@@ -963,5 +963,63 @@ class TrikeGUI:
         return base_name
 
 if __name__ == "__main__":
-    gui = TrikeGUI()
+    import argparse
+
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Trike Game with AI options.")
+    parser.add_argument("--board_size", type=int, default=7, help="Size of the game board (7-19).")
+    parser.add_argument("--player1_name", type=str, default="Player 1", help="Name of Player 1.")
+    parser.add_argument("--player1_ai", type=str, choices=["Human", "RandomAI", "MinimaxAI", "MCTSAI", "HybridAI"], default="Human", help="AI type for Player 1.")
+    parser.add_argument("--player1_minimax_weight", type=int, default=25, help="Weight for MinimaxAI for Player 1 (HybridAI only).")
+    parser.add_argument("--player1_mcts_weight", type=int, default=45, help="Weight for MCTSAI for Player 1 (HybridAI only).")
+    parser.add_argument("--player1_random_weight", type=int, default=30, help="Weight for RandomAI for Player 1 (HybridAI only).")
+    parser.add_argument("--player2_name", type=str, default="Player 2", help="Name of Player 2.")
+    parser.add_argument("--player2_ai", type=str, choices=["Human", "RandomAI", "MinimaxAI", "MCTSAI", "HybridAI"], default="Human", help="AI type for Player 2.")
+    parser.add_argument("--player2_minimax_weight", type=int, default=25, help="Weight for MinimaxAI for Player 2 (HybridAI only).")
+    parser.add_argument("--player2_mcts_weight", type=int, default=45, help="Weight for MCTSAI for Player 2 (HybridAI only).")
+    parser.add_argument("--player2_random_weight", type=int, default=30, help="Weight for RandomAI for Player 2 (HybridAI only).")
+    args = parser.parse_args()
+
+    # Initialize the game
+    game = Game(args.board_size)
+    gui = TrikeGUI(game)
+
+    # Set player names
+    gui.player_names = [args.player1_name, args.player2_name]
+
+    # Create AI players based on arguments
+    if args.player1_ai != "Human":
+        if args.player1_ai == "HybridAI":
+            gui.ai_players[0] = HybridAI(
+                name=args.player1_name,
+                minimax_weight=args.player1_minimax_weight,
+                mcts_weight=args.player1_mcts_weight,
+                random_weight=args.player1_random_weight,
+            )
+        elif args.player1_ai == "MinimaxAI":
+            gui.ai_players[0] = MinimaxAI(depth=3, name=args.player1_name)
+        elif args.player1_ai == "MCTSAI":
+            gui.ai_players[0] = MCTSAI(iterations=1000, name=args.player1_name)
+        elif args.player1_ai == "RandomAI":
+            gui.ai_players[0] = RandomAI(name=args.player1_name)
+
+    if args.player2_ai != "Human":
+        if args.player2_ai == "HybridAI":
+            gui.ai_players[1] = HybridAI(
+                name=args.player2_name,
+                minimax_weight=args.player2_minimax_weight,
+                mcts_weight=args.player2_mcts_weight,
+                random_weight=args.player2_random_weight,
+            )
+        elif args.player2_ai == "MinimaxAI":
+            gui.ai_players[1] = MinimaxAI(depth=3, name=args.player2_name)
+        elif args.player2_ai == "MCTSAI":
+            gui.ai_players[1] = MCTSAI(iterations=1000, name=args.player2_name)
+        elif args.player2_ai == "RandomAI":
+            gui.ai_players[1] = RandomAI(name=args.player2_name)
+
+    # Run the game
     gui.run()
+
+    # Return the winner's name
+    print(f"The winner is: {gui.winner_name}")

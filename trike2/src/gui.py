@@ -227,6 +227,7 @@ class TrikeGUI:
                 f"Thank you for playing Trike!"
             )
         self.show_custom_message("Game Over", msg)
+        self.winner_name = winner_msg
         self.game_over = True
 
     def reset_game(self):
