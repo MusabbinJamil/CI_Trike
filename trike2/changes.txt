@@ -1,0 +1,50 @@
+# Evolutionary Optimizer for HybridAI Parameters (v2)
+
+This code implements an evolutionary algorithm to optimize the parameters for a HybridAI player in the Trike game. It has been refactored from GUI-based to headless for enhanced performance.
+
+## Core Purpose
+The script automatically discovers optimal weight combinations for three different AI strategies (Minimax, MCTS, and Random) by evolving parameters through competitive gameplay.
+
+## Key Components
+
+1. **HybridIndividual Class**: Represents a specific HybridAI configuration with particular weights for each strategy
+   - Tracks performance metrics like games won/played and fitness
+   - Creates and maintains an actual HybridAI instance for direct integration with existing battle system
+   - Can be serialized to/from JSON for persistence
+
+2. **Tournament System**: 
+   - Uses existing headless AI battle functionality instead of GUI processes
+   - Runs multiple games between different AI configurations 
+   - Calculates fitness based on win ratio
+   - Ensures fairness by alternating which player goes first
+
+3. **Evolution Components**:
+   - Selection: Tournament selection to pick promising parameter combinations
+   - Crossover: Creates new configurations by combining successful parents
+   - Mutation: Introduces variation by randomly adjusting weights
+   - Normalization: Ensures weights always sum to 100%
+
+4. **Integration**:
+   - Seamlessly integrates with existing training infrastructure via train_ai.py
+   - Saves best performers to a hall of fame and evolved_players.json
+   - Detailed logging of evolutionary progress
+   - Command-line parameters for easy configuration
+
+## Process Flow
+
+1. Initialize random population of HybridAI configurations
+2. For each generation:
+   - Run tournaments to evaluate performance using headless battles
+   - Select top performers through tournament selection
+   - Create new configurations through crossover and mutation
+   - Save intermediate results for analysis
+3. Output the best configuration found across all generations
+
+## Improvements in v2
+- Much faster evolution through headless battles (no GUI overhead)
+- Better integration with existing codebase through the training framework
+- More reliable result tracking and persistence
+- Proper error handling for battle outcomes
+- Direct usability of evolved parameters through evolved_players.json
+
+Instead of manually tuning the AI parameters, this script uses an evolutionary approach to systematically discover optimal combinations through competitive self-play.

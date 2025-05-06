@@ -81,7 +81,13 @@ class TrikeGUI:
         # Initialize StringVar for player types (will be created in show_setup_panel)
         self.player1_type = tk.StringVar(value="Human")
         self.player2_type = tk.StringVar(value="Human")
-        
+
+        # Add winner_name attribute
+        self.winner_name = None
+
+        # Add auto_play and close_when_done attributes
+        self.auto_play = False
+        self.close_when_done = False
         
         # Create main container frame
         self.main_container = tk.Frame(self.root)
@@ -518,11 +524,22 @@ class TrikeGUI:
         # Show game panel
         self.game_panel.pack(fill=tk.BOTH, expand=True)
         self.root.unbind("<Return>")
+        
+        # If auto_play is enabled, start the loop
+        if self.auto_play:
+            self.root.after(100, self.check_auto_play)
     
     def show_result_panel(self, result_text):
         # Hide other panels
         self.setup_panel.pack_forget()
         self.game_panel.pack_forget()
+
+        # Set the winner name for the evolutionary optimizer to access
+        if "wins" in result_text:
+            self.winner_name = result_text.split(" wins")[0]
+        else:
+            self.winner_name = "Draw"
+    
         
         # Update and show result panel
         self.result_label.config(text=result_text)
@@ -746,6 +763,10 @@ class TrikeGUI:
         # Show result as a popup instead of replacing the game panel
         self.show_result_popup(msg)
         self.game_over = True
+
+        # Close the window if close_when_done is enabled
+        if self.close_when_done:
+            self.root.quit()
     
     def show_scoreboard(self):
         """Display the scoreboard in a new window"""
@@ -962,6 +983,20 @@ class TrikeGUI:
             return f"{base_name} ({ai_type})"
         return base_name
 
+    def check_auto_play(self):
+        if self.auto_play and self.game and not self.game.is_game_over():
+            self.check_ai_turn()
+            # Schedule next check after a short delay
+            self.root.after(100, self.check_auto_play)
+        elif self.auto_play and self.game and self.game.is_game_over() and self.close_when_done:
+            # Save the scores before closing
+            winner = self.game.get_winner()
+            if winner is not None:
+                self.winner_name = self.get_player_display_name(winner)
+                self.save_score(self.winner_name)
+            # Close the window after a short delay
+            self.root.after(1000, self.root.destroy)
+
 if __name__ == "__main__":
     import argparse
 
@@ -978,6 +1013,10 @@ if __name__ == "__main__":
     parser.add_argument("--player2_minimax_weight", type=int, default=25, help="Weight for MinimaxAI for Player 2 (HybridAI only).")
     parser.add_argument("--player2_mcts_weight", type=int, default=45, help="Weight for MCTSAI for Player 2 (HybridAI only).")
     parser.add_argument("--player2_random_weight", type=int, default=30, help="Weight for RandomAI for Player 2 (HybridAI only).")
+    parser.add_argument("--auto_play", type=str, choices=["True", "False"], default="False", 
+                        help="Automatically play the game without user interaction")
+    parser.add_argument("--close_when_done", type=str, choices=["True", "False"], default="False",
+                        help="Automatically close the window when game is finished")
     args = parser.parse_args()
 
     # Initialize the game
@@ -1017,6 +1056,10 @@ if __name__ == "__main__":
             gui.ai_players[1] = MCTSAI(iterations=1000, name=args.player2_name)
         elif args.player2_ai == "RandomAI":
             gui.ai_players[1] = RandomAI(name=args.player2_name)
+
+    # Set auto_play and close_when_done attributes
+    gui.auto_play = args.auto_play == "True"
+    gui.close_when_done = args.close_when_done == "True"
 
     # Run the game
     gui.run()
