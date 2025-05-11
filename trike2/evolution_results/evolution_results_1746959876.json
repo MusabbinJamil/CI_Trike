@@ -1,0 +1,126 @@
+{
+  "hall_of_fame": [
+    {
+      "name": "Hybrid_572716",
+      "minimax_weight": 57,
+      "mcts_weight": 27,
+      "random_weight": 16,
+      "fitness": 0.6666666666666666,
+      "games_played": 6,
+      "games_won": 4
+    },
+    {
+      "name": "Hybrid_333928",
+      "minimax_weight": 33,
+      "mcts_weight": 39,
+      "random_weight": 28,
+      "fitness": 0.8333333333333334,
+      "games_played": 6,
+      "games_won": 5
+    }
+  ],
+  "generation_results": [
+    {
+      "generation": 1,
+      "best_fitness": 0.6666666666666666,
+      "best_individual": {
+        "name": "Hybrid_572716",
+        "minimax_weight": 57,
+        "mcts_weight": 27,
+        "random_weight": 16,
+        "fitness": 0.6666666666666666,
+        "games_played": 6,
+        "games_won": 4
+      },
+      "population": [
+        {
+          "name": "Hybrid_572716",
+          "minimax_weight": 57,
+          "mcts_weight": 27,
+          "random_weight": 16,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        },
+        {
+          "name": "Hybrid_333928",
+          "minimax_weight": 33,
+          "mcts_weight": 39,
+          "random_weight": 28,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        },
+        {
+          "name": "Hybrid_335314",
+          "minimax_weight": 33,
+          "mcts_weight": 53,
+          "random_weight": 14,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        },
+        {
+          "name": "Hybrid_206713",
+          "minimax_weight": 20,
+          "mcts_weight": 67,
+          "random_weight": 13,
+          "fitness": 0.16666666666666666,
+          "games_played": 6,
+          "games_won": 1
+        }
+      ]
+    },
+    {
+      "generation": 2,
+      "best_fitness": 0.8333333333333334,
+      "best_individual": {
+        "name": "Hybrid_333928",
+        "minimax_weight": 33,
+        "mcts_weight": 39,
+        "random_weight": 28,
+        "fitness": 0.8333333333333334,
+        "games_played": 6,
+        "games_won": 5
+      },
+      "population": [
+        {
+          "name": "Hybrid_333928",
+          "minimax_weight": 33,
+          "mcts_weight": 39,
+          "random_weight": 28,
+          "fitness": 0.8333333333333334,
+          "games_played": 6,
+          "games_won": 5
+        },
+        {
+          "name": "Hybrid_333928",
+          "minimax_weight": 33,
+          "mcts_weight": 39,
+          "random_weight": 28,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        },
+        {
+          "name": "Hybrid_333928",
+          "minimax_weight": 33,
+          "mcts_weight": 39,
+          "random_weight": 28,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        },
+        {
+          "name": "Hybrid_324127",
+          "minimax_weight": 32,
+          "mcts_weight": 41,
+          "random_weight": 27,
+          "fitness": 0.6666666666666666,
+          "games_played": 6,
+          "games_won": 4
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Evolved_AI_83",
+    "minimax_weight": 33,
+    "mcts_weight": 39,
+    "random_weight": 28,
+    "fitness": 0.8333333333333334
+  },
+  {
+    "name": "Evolved_AI_83",
+    "minimax_weight": 33,
+    "mcts_weight": 39,
+    "random_weight": 28,
+    "fitness": 0.8333333333333334
+  },
+  {
+    "name": "Evolved_AI_66",
+    "minimax_weight": 57,
+    "mcts_weight": 27,
+    "random_weight": 16,
+    "fitness": 0.6666666666666666
+  }
+]

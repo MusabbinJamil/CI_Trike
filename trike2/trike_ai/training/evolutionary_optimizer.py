@@ -86,15 +86,9 @@ def run_tournament_generation(population: List[HybridIndividual], board_size: in
                 result = run_ai_match(player1.ai, player2.ai, board_size=board_size, verbose=verbose)
                 
                 # Check the format of result
-                if isinstance(result, tuple):
-                    # Assuming format is (winner, p1_score, p2_score) or similar
-                    winner = result[0]
-                    if winner == 1:  # player1 won
-                        player1.games_won += 1
-                else:
-                    # Original expectation: result is just winner indicator
-                    if result > 0:  # player1 won
-                        player1.games_won += 1
+                winner, scores = result
+                if winner == player1.ai.name:  # player1 won
+                    player1.games_won += 1
                 
                 player1.games_played += 1
                 
@@ -103,13 +97,9 @@ def run_tournament_generation(population: List[HybridIndividual], board_size: in
                 result = run_ai_match(player2.ai, player1.ai, board_size=board_size, verbose=verbose)
                 
                 # Check format of result for second match too
-                if isinstance(result, tuple):
-                    winner = result[0]
-                    if winner == 2:  # player2 won, which means player1 lost
-                        player1.games_won += 1
-                else:
-                    if result < 0:  # player2 lost (player1 won)
-                        player1.games_won += 1
+                winner, scores = result
+                if winner == player1.ai.name:  # player1 won
+                    player1.games_won += 1
                 
                 player1.games_played += 1
     
