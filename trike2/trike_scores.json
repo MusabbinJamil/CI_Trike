@@ -1,3 +1,6 @@
 {
-    "RandomAI": 1
+    "RandomAI": 1,
+    "HybridAI": 1,
+    "DQNAI": 5,
+    "DQNAI2": 1
 }

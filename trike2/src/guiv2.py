@@ -6,7 +6,7 @@ import tkinter.simpledialog
 import json
 import os
 # Add these imports for AI support
-from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI, HybridAI
+from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI, HybridAI, DQNAI
 import threading
 import time
 
@@ -492,7 +492,7 @@ class TrikeGUI:
         player1_options = tk.OptionMenu(
             ai_frame,
             self.player1_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI","HybridAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", "DQNAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 0)
         )
         player1_options.config(font=FONT_LARGE, width=15)
@@ -510,7 +510,7 @@ class TrikeGUI:
         player2_options = tk.OptionMenu(
             ai_frame,
             self.player2_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", "DQNAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 1)
         )
         player2_options.config(font=FONT_LARGE, width=15)
@@ -610,6 +610,11 @@ class TrikeGUI:
                 return MCTSAI(iterations=1000, name=player_name)
             elif ai_type == "HybridAI": 
                 return HybridAI(name=player_name)
+            elif ai_type == "DQNAI":
+                dqn = DQNAI(name=player_name)
+                dqn.load_model("models/DQN_Agent.pt")  # Load trained model
+                dqn.epsilon = 0.05  # Set low epsilon for mostly exploitation
+                return dqn
             else:
                 return None
         except Exception as e:
@@ -649,6 +654,9 @@ class TrikeGUI:
                     self.ai_players[0] = MCTSAI(iterations=1000, name=self.player_names[0])
                 elif p1_type == "HybridAI":
                     self.ai_players[0] = HybridAI(name=self.player_names[0])
+                elif p1_type == "DQNAI":
+                    self.ai_players[0] = DQNAI(name=self.player_names[0])
+                    self.ai_players[0].load_model("models/DQN_Agent.pt")
 
                 # Player 2 AI
                 p2_type = self.player2_type.get()
@@ -662,6 +670,9 @@ class TrikeGUI:
                     self.ai_players[1] = MCTSAI(iterations=1000, name=self.player_names[1])
                 elif p2_type == "HybridAI":
                     self.ai_players[1] = HybridAI(name=self.player_names[1])
+                elif p2_type == "DQNAI":
+                    self.ai_players[1] = DQNAI(name=self.player_names[1])
+                    self.ai_players[1].load_model("models/DQN_Agent.pt")
 
                 # Update canvas dimensions
                 width = int(HEX_SIZE * 1.5 * size + HEX_SIZE * 2)
