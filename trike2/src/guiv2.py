@@ -215,24 +215,17 @@ class TrikeGUI:
         )
         self.reset_btn.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
         
-        self.instructions_btn = tk.Button(
-            self.button_frame, 
-            text="Instructions", 
-            command=self.show_instructions, 
-            width=btn_width, 
+        # Replace individual buttons with an Options button
+        self.options_btn = tk.Button(
+            self.button_frame,
+            text="Options",
+            command=self.show_options_menu,
+            width=btn_width,
             font=FONT_BUTTON
         )
-        self.instructions_btn.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
-
-        self.scoreboard_btn = tk.Button(
-            self.button_frame, 
-            text="Scoreboard", 
-            command=self.show_scoreboard, 
-            width=btn_width, 
-            font=FONT_BUTTON
-        )
-        self.scoreboard_btn.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+        self.options_btn.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
         
+        # Keep the quit button
         self.quit_btn = tk.Button(
             self.button_frame, 
             text="Quit", 
@@ -240,7 +233,7 @@ class TrikeGUI:
             width=btn_width, 
             font=FONT_BUTTON
         )
-        self.quit_btn.grid(row=0, column=4, padx=10, pady=10, sticky="ew")
+        self.quit_btn.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
         
         # Initialize variables
         self.selected = None
@@ -264,7 +257,14 @@ class TrikeGUI:
             px = x + HEX_SIZE * math.cos(angle)
             py = y + HEX_SIZE * math.sin(angle)
             points.extend([px, py])
-        self.canvas.create_polygon(points, outline="black", fill=color, width=2)
+        
+        # Use theme colors instead of hardcoded values
+        if color == "purple":
+            fill_color = self.themes[self.current_theme]["valid_move"]
+        else:
+            fill_color = self.themes[self.current_theme]["board"]
+        
+        self.canvas.create_polygon(points, outline="black", fill=fill_color, width=2)
         
         # Add pattern for valid moves (not just color)
         if color == "purple":
@@ -278,12 +278,17 @@ class TrikeGUI:
         # Draw pawn with stronger visual distinction
         if self.game.pawn.position == (q, r):
             # Use high contrast and pattern for the pawn
-            self.canvas.create_oval(x-14, y-14, x+14, y+14, fill="red", outline="black", width=3)
+            self.canvas.create_oval(
+                x-14, y-14, x+14, y+14, 
+                fill=self.themes[self.current_theme]["pawn"], 
+                outline=self.themes[self.current_theme]["pawn_outline"], 
+                width=3
+            )
             
             # Draw the center showing the checker color
             if checker:
-                center_color = "black" if checker.color == "black" else "white"
-                center_outline = "white" if checker.color == "black" else "black"
+                center_color = self.themes[self.current_theme]["player1"] if checker.color == "black" else self.themes[self.current_theme]["player2"]
+                center_outline = self.themes[self.current_theme]["player2"] if checker.color == "black" else self.themes[self.current_theme]["player1"]
                 self.canvas.create_oval(x-6, y-6, x+6, y+6, fill=center_color, outline=center_outline, width=1)
             else:
                 # Use yellow if no checker is present
@@ -297,8 +302,8 @@ class TrikeGUI:
                 self.canvas.create_text(px, py, text="*", font=("Arial", 14, "bold"))
         # Draw checker if no pawn is present
         elif checker:
-            fill = "black" if checker.color == "black" else "white"
-            outline = "white" if checker.color == "black" else "black"
+            fill = self.themes[self.current_theme]["player1"] if checker.color == "black" else self.themes[self.current_theme]["player2"]
+            outline = self.themes[self.current_theme]["player2"] if checker.color == "black" else self.themes[self.current_theme]["player1"]
             self.canvas.create_oval(x-10, y-10, x+10, y+10, fill=fill, outline=outline, width=2)
     
     def draw_board(self):
@@ -309,12 +314,22 @@ class TrikeGUI:
             color = "purple" if (q, r) in self.valid_moves else "gray"
             self.draw_hex(q, r, color=color)
         if not (self.game_over):
-            player1 = f"{self.get_player_display_name(0)} ({self.game.players[0].color.capitalize()})"
-            player2 = f"{self.get_player_display_name(1)} ({self.game.players[1].color.capitalize()})"
             current_idx = self.game.current_player_index
-            current = f"{self.get_player_display_name(current_idx)} ({self.game.players[current_idx].color.capitalize()})"
+            current_player = self.get_player_display_name(current_idx)
+            internal_color = self.game.players[current_idx].color
+            
+            # Map internal color to theme-appropriate display names
+            if self.current_theme == "Green & Purple":
+                color_display = "Green" if internal_color == "black" else "Purple"
+            elif self.current_theme == "Black & White":
+                color_display = "Black" if internal_color == "black" else "White"
+            elif self.current_theme == "Red & Blue":
+                color_display = "Red" if internal_color == "black" else "Blue"
+            else:  # Classic or other themes
+                color_display = internal_color.capitalize()
+                
             self.status.config(
-                text=f"{player1} vs {player2}    |    {current}'s turn"
+                text=f"Current Turn:{current_player} ({color_display})"
             )
 
     def on_click(self, event):
@@ -424,102 +439,216 @@ class TrikeGUI:
                 self.player1_name.set(player_type)
             else:
                 self.player2_name.set(player_type)
+
+            # Apply theme after updating the player name
+            self.update_theme()
     
     def show_setup_panel(self):
         # Hide other panels
         self.game_panel.pack_forget()
         self.result_panel.pack_forget()
         
+        # Hide the bottom button frame when in setup panel
+        self.button_frame.pack_forget()
+        
         # Show setup panel
         self.setup_panel.pack(fill=tk.BOTH, expand=True)
         
-        # Clear any existing name fields (to avoid duplicates on reset)
+        # Clear ALL existing widgets
         for widget in self.setup_panel.winfo_children():
-            if hasattr(widget, 'player_name_frame') or hasattr(widget, 'theme_frame') or hasattr(widget, 'ai_frame'):
-                widget.destroy()
+            widget.destroy()
         
-        # Add player name input fields
-        player_name_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
-        player_name_frame.player_name_frame = True  # Mark for identification
-        player_name_frame.pack(pady=10)
+        # Add cute welcome message instead of instructions
+        welcome_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
+        welcome_frame.pack(fill=tk.X, pady=20)
         
-        # Player 1 name field
+        # Create stars for decoration
+        stars = "⬡ ⬢ ⬣ ⬢ ⬣ ⬢ ⬣ ⬢ ⬣ ⬢ ⬣ ⬢ ⬣ ⬢ ⬡"
         tk.Label(
-            player_name_frame,
-            text="Player 1 Name:",
+            welcome_frame,
+            text=stars,
+            font=("Arial", 20, "bold"),
+            fg="#FF6B6B",
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).pack()
+        
+        # Main welcome text
+        tk.Label(
+            welcome_frame,
+            text="WELCOME TO TRIKE",
+            font=("Comic Sans MS", 28, "bold"),
+            fg="#4E7DFF",
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).pack(pady=10)
+        
+        # Cute subtitle
+        tk.Label(
+            welcome_frame,
+            text="The hexagonal strategy game!",
+            font=("Comic Sans MS", 16),
+            fg="#9A67EA",
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).pack()
+        
+        # Bottom stars
+        tk.Label(
+            welcome_frame,
+            text=stars,
+            font=("Arial", 20, "bold"),
+            fg="#FF6B6B",
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).pack()
+        
+        # Small instruction button
+        tk.Button(
+            welcome_frame,
+            text="Game Instructions",
+            command=self.show_instructions,
+            font=("Arial", 10),
+            bg="#e0e0e0"
+        ).pack(pady=5)
+        
+        # Rest of the setup panel (size selection, player options, etc.)
+        size_frame = tk.Frame(self.setup_panel, bg="lightyellow")
+        size_frame.pack(pady=20)
+        
+        tk.Label(
+            size_frame, 
+            text="Enter board size (7-19):", 
+            font=FONT_LARGE,
+            bg="lightyellow"
+        ).pack(side=tk.LEFT)
+        
+        self.size_var = tk.StringVar(value="7")  # Set default value to 7
+        self.size_entry = tk.Entry(size_frame, textvariable=self.size_var, font=FONT_LARGE, width=5)
+        self.size_entry.pack(side=tk.LEFT, padx=10)
+        
+        # Add player name and AI type selection
+        player_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
+        player_frame.player_name_frame = True  # Mark for identification
+        player_frame.pack(pady=10, fill=tk.X, padx=20)
+        
+        # Configure columns for equal spacing
+        player_frame.columnconfigure(0, weight=1)  # Player label
+        player_frame.columnconfigure(1, weight=2)  # Name entry
+        player_frame.columnconfigure(2, weight=1)  # Type label
+        player_frame.columnconfigure(3, weight=2)  # Type dropdown
+        
+        # Headers
+        tk.Label(
+            player_frame,
+            text="Player",
             font=FONT_LARGE,
             bg=self.themes[self.current_theme]["panel_bg"]
-        ).grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        ).grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        
+        
+        tk.Label(
+            player_frame,
+            text="Name",
+            font=FONT_LARGE,
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).grid(row=0, column=1, sticky="w", padx=5, pady=5)
+        
+        tk.Label(
+            player_frame,
+            text="Type",
+            font=FONT_LARGE,
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).grid(row=0, column=3, sticky="w", padx=5, pady=5)  # Changed from column 2 to column 3
+        
+        # Player 1 row
+        tk.Label(
+            player_frame,
+            text="Player 1:",
+            font=FONT_LARGE,
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).grid(row=1, column=0, sticky="w", padx=5, pady=5)
         
         self.player1_name = tk.StringVar(value="Player 1")
         tk.Entry(
-            player_name_frame,
+            player_frame,
             textvariable=self.player1_name,
             font=FONT_LARGE,
             width=15
-        ).grid(row=0, column=1, padx=5, pady=5)
-        
-        # Player 2 name field
-        tk.Label(
-            player_name_frame,
-            text="Player 2 Name:",
-            font=FONT_LARGE,
-            bg=self.themes[self.current_theme]["panel_bg"]
-        ).grid(row=1, column=0, sticky="e", padx=5, pady=5)
-        
-        self.player2_name = tk.StringVar(value="Player 2")
-        tk.Entry(
-            player_name_frame, 
-            textvariable=self.player2_name,
-            font=FONT_LARGE,
-            width=15
-        ).grid(row=1, column=1, padx=5, pady=5)
-        
-        # Add AI selection options
-        ai_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
-        ai_frame.ai_frame = True  # Mark for identification
-        ai_frame.pack(pady=10)
-        
-        # Player 1 AI selection with callback
-        tk.Label(
-            ai_frame,
-            text="Player 1 Type:",
-            font=FONT_LARGE,
-            bg=self.themes[self.current_theme]["panel_bg"]
-        ).grid(row=0, column=0, sticky="e", padx=5, pady=5)
+        ).grid(row=1, column=1, padx=5, pady=5, sticky="w")
         
         self.player1_type = tk.StringVar(value="Human")
         player1_options = tk.OptionMenu(
-            ai_frame,
+            player_frame,
             self.player1_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", "DQNAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", 
+            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay",
             command=lambda selection: self.update_player_name_from_ai(selection, 0)
         )
         player1_options.config(font=FONT_LARGE, width=15)
-        player1_options.grid(row=0, column=1, padx=5, pady=5)
+        player1_options.grid(row=1, column=3, padx=5, pady=5, sticky="w")
         
-        # Player 2 AI selection with callback
+        # Player 2 row
         tk.Label(
-            ai_frame,
-            text="Player 2 Type:",
+            player_frame,
+            text="Player 2:",
             font=FONT_LARGE,
             bg=self.themes[self.current_theme]["panel_bg"]
-        ).grid(row=1, column=0, sticky="e", padx=5, pady=5)
+        ).grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        
+        self.player2_name = tk.StringVar(value="Player 2")
+        tk.Entry(
+            player_frame, 
+            textvariable=self.player2_name,
+            font=FONT_LARGE,
+            width=15
+        ).grid(row=2, column=1, padx=5, pady=5, sticky="w")
         
         self.player2_type = tk.StringVar(value="Human")
         player2_options = tk.OptionMenu(
-            ai_frame,
+            player_frame,
             self.player2_type,
-            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", "DQNAI",
+            "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", 
+            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay",
             command=lambda selection: self.update_player_name_from_ai(selection, 1)
         )
         player2_options.config(font=FONT_LARGE, width=15)
-        player2_options.grid(row=1, column=1, padx=5, pady=5)
+        player2_options.grid(row=2, column=3, padx=5, pady=5, sticky="w")
+        
+        # Add theme selection
+        theme_frame = tk.Frame(self.setup_panel, bg=self.themes[self.current_theme]["panel_bg"])
+        theme_frame.theme_frame = True  # Mark for identification
+        theme_frame.pack(pady=10, fill=tk.X, padx=20)
+        
+        tk.Label(
+            theme_frame,
+            text="Select Theme:",
+            font=FONT_LARGE,
+            bg=self.themes[self.current_theme]["panel_bg"]
+        ).pack(side=tk.LEFT, padx=5, pady=5)
+        
+        theme_var = tk.StringVar(value=self.current_theme)
+        theme_options = tk.OptionMenu(
+            theme_frame,
+            theme_var,
+            *list(self.themes.keys()),
+            command=self.update_theme
+        )
+        theme_options.config(font=FONT_LARGE, width=15)
+        theme_options.pack(side=tk.LEFT, padx=5, pady=5)
+        
+        # Add Start Game button ONCE at the end
+        tk.Button(
+            self.setup_panel, 
+            text="Start Game", 
+            command=self.start_game, 
+            font=FONT_BUTTON, 
+            width=15
+        ).pack(pady=20)
     
     def show_game_panel(self):
         # Hide other panels
         self.setup_panel.pack_forget()
         self.result_panel.pack_forget()
+        
+        # Show bottom button frame
+        self.button_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=10)
         
         # Show game panel
         self.game_panel.pack(fill=tk.BOTH, expand=True)
@@ -534,13 +663,15 @@ class TrikeGUI:
         self.setup_panel.pack_forget()
         self.game_panel.pack_forget()
 
+        # Show bottom button frame
+        self.button_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=10)
+        
         # Set the winner name for the evolutionary optimizer to access
         if "wins" in result_text:
             self.winner_name = result_text.split(" wins")[0]
         else:
             self.winner_name = "Draw"
     
-        
         # Update and show result panel
         self.result_label.config(text=result_text)
         self.result_panel.pack(fill=tk.BOTH, expand=True)
@@ -612,7 +743,17 @@ class TrikeGUI:
                 return HybridAI(name=player_name)
             elif ai_type == "DQNAI":
                 dqn = DQNAI(name=player_name)
-                dqn.load_model("models/DQN_Agent.pt")  # Load trained model
+                dqn.load_model("models/DQN_Agent.pt")  # Load default model
+                dqn.epsilon = 0.05  # Set low epsilon for mostly exploitation
+                return dqn
+            elif ai_type == "DQNAI-Advanced":
+                dqn = DQNAI(name=f"{player_name} (Advanced)")
+                dqn.load_model("models/DQN_Advanced_2000ep.pt/DQN_Main.pt")
+                dqn.epsilon = 0.05  # Set low epsilon for mostly exploitation
+                return dqn
+            elif ai_type == "DQNAI-SelfPlay":
+                dqn = DQNAI(name=f"{player_name} (SelfPlay)")
+                dqn.load_model("models/DQN_SelfPlay_Final_1000ep.pt/DQN_Main.pt")
                 dqn.epsilon = 0.05  # Set low epsilon for mostly exploitation
                 return dqn
             else:
@@ -644,35 +785,13 @@ class TrikeGUI:
                 
                 # Player 1 AI
                 p1_type = self.player1_type.get()
-                if p1_type == "RandomAI":
-                    self.ai_players[0] = RandomAI(name=self.player_names[0])
-                elif p1_type == "MinimaxAI-Easy":
-                    self.ai_players[0] = MinimaxAI(depth=2, name=self.player_names[0])
-                elif p1_type == "MinimaxAI-Hard":
-                    self.ai_players[0] = MinimaxAI(depth=3, name=self.player_names[0])
-                elif p1_type == "MCTSAI":
-                    self.ai_players[0] = MCTSAI(iterations=1000, name=self.player_names[0])
-                elif p1_type == "HybridAI":
-                    self.ai_players[0] = HybridAI(name=self.player_names[0])
-                elif p1_type == "DQNAI":
-                    self.ai_players[0] = DQNAI(name=self.player_names[0])
-                    self.ai_players[0].load_model("models/DQN_Agent.pt")
+                if p1_type != "Human":
+                    self.ai_players[0] = self.create_ai(p1_type, self.player_names[0])
 
                 # Player 2 AI
                 p2_type = self.player2_type.get()
-                if p2_type == "RandomAI":
-                    self.ai_players[1] = RandomAI(name=self.player_names[1])
-                elif p2_type == "MinimaxAI-Easy":
-                    self.ai_players[1] = MinimaxAI(depth=2, name=self.player_names[1])
-                elif p2_type == "MinimaxAI-Hard": 
-                    self.ai_players[1] = MinimaxAI(depth=3, name=self.player_names[1])
-                elif p2_type == "MCTSAI":
-                    self.ai_players[1] = MCTSAI(iterations=1000, name=self.player_names[1])
-                elif p2_type == "HybridAI":
-                    self.ai_players[1] = HybridAI(name=self.player_names[1])
-                elif p2_type == "DQNAI":
-                    self.ai_players[1] = DQNAI(name=self.player_names[1])
-                    self.ai_players[1].load_model("models/DQN_Agent.pt")
+                if p2_type != "Human":
+                    self.ai_players[1] = self.create_ai(p2_type, self.player_names[1])
 
                 # Update canvas dimensions
                 width = int(HEX_SIZE * 1.5 * size + HEX_SIZE * 2)
@@ -878,6 +997,38 @@ class TrikeGUI:
                 elif current_state == "result":
                     widget.config(command=lambda: self.show_result_panel(self.result_label.cget("text")))
                 break
+        
+    def show_options_menu(self):
+        """Show popup menu with instructions, scoreboard, and theme options"""
+        # Create popup menu
+        options_menu = tk.Menu(self.root, tearoff=0)
+        
+        # Add items to the menu
+        options_menu.add_command(label="Instructions", command=self.show_instructions)
+        options_menu.add_command(label="Scoreboard", command=self.show_scoreboard)
+        
+        # Create theme submenu
+        theme_menu = tk.Menu(options_menu, tearoff=0)
+        for theme_name in self.themes.keys():
+            theme_menu.add_command(
+                label=theme_name,
+                command=lambda theme=theme_name: self.update_theme(theme)
+            )
+        
+        # Add the theme submenu to the main options menu
+        options_menu.add_cascade(label="Select Theme", menu=theme_menu)
+        
+        # Display the menu at the button's location
+        try:
+            # Get the position of the options button
+            x = self.options_btn.winfo_rootx()
+            y = self.options_btn.winfo_rooty() - options_menu.winfo_reqheight()
+            
+            # Post the menu at the calculated position
+            options_menu.post(x, y)
+        except:
+            # Fallback to cursor position if there's an error
+            options_menu.post(self.root.winfo_pointerx(), self.root.winfo_pointery())
     
     def reset_game(self):
         if self.game:
@@ -919,7 +1070,7 @@ class TrikeGUI:
         self.canvas.config(bg=self.themes[self.current_theme]["bg"])
         
         # Redraw board if game is in progress
-        if self.game:
+        if hasattr(self, 'game') and self.game:
             self.draw_board()
     
     def check_ai_turn(self):
