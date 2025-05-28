@@ -7,9 +7,13 @@ from trike_ai.agents.random_ai import RandomAI
 class HybridAI:
     """
     AI agent that randomly selects between MinimaxAI, MCTSAI, or RandomAI
-    with customizable weights.
-    """
-    def __init__(self, name="Hybrid AI", minimax_weight=45, mcts_weight=30, random_weight=25):
+    with customizable weights. Current default weights are:
+    - MinimaxAI: 50%
+    - MCTSAI: 40%
+    - RandomAI: 10%
+    These weights were learned thorugh evolutionary training.
+    """ 
+    def __init__(self, name="Hybrid AI", minimax_weight=20, mcts_weight=31, random_weight=49):
         """
         Initialize the Hybrid AI agent with customizable weights.
         

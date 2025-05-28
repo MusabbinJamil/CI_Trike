@@ -69,41 +69,61 @@ class HybridIndividual:
         ind.games_won = data.get("games_won", 0)
         return ind
 
+CHAMPION_CONFIG = HybridIndividual(
+    minimax_weight=50,
+    mcts_weight=40, 
+    random_weight=10
+)
+
 def run_tournament_generation(population: List[HybridIndividual], board_size: int, num_rounds: int, verbose: bool):
-    """Run tournament between individuals in the population"""
+    """Modified tournament to include champion evaluation"""
+    total_matches = len(population) * (num_rounds * 2 + num_rounds * 2 * 3)
+    matches_played = 0
+    
     for i, player1 in enumerate(population):
         player1.games_played = 0
         player1.games_won = 0
         
-        # Each individual plays against several others
+        # First play against champion configuration
+        for _ in range(num_rounds):
+            # Play against champion as both first and second player
+            result = run_ai_match(player1.ai, CHAMPION_CONFIG.ai, board_size=board_size, verbose=verbose)
+            winner, _ = result
+            if winner == player1.ai.name:
+                player1.games_won += 1.5  # Bonus points for beating champion
+            player1.games_played += 1
+            matches_played += 1
+
+            result = run_ai_match(CHAMPION_CONFIG.ai, player1.ai, board_size=board_size, verbose=verbose)
+            winner, _ = result
+            if winner == player1.ai.name:
+                player1.games_won += 1.5
+            player1.games_played += 1
+            matches_played += 1
+
+            # Show progress within generation
+            gen_progress = (matches_played / total_matches) * 100
+            print(f"\rGeneration progress: {gen_progress:.1f}%", end="")
+            
+        # Then play against population members
         opponents = random.sample(population[:i] + population[i+1:], 
-                                 min(3, len(population)-1))
+                               min(3, len(population)-1))
         
         for player2 in opponents:
             for _ in range(num_rounds):
-                # First match: player1 goes first
-                print(f"Match: {player1.ai.name} vs {player2.ai.name}")
                 result = run_ai_match(player1.ai, player2.ai, board_size=board_size, verbose=verbose)
-                
-                # Check the format of result
-                winner, scores = result
-                if winner == player1.ai.name:  # player1 won
+                winner, _ = result
+                if winner == player1.ai.name:
                     player1.games_won += 1
-                
                 player1.games_played += 1
-                
-                # Second match: player2 goes first (for fairness)
-                print(f"Match: {player2.ai.name} vs {player1.ai.name}")
+
                 result = run_ai_match(player2.ai, player1.ai, board_size=board_size, verbose=verbose)
-                
-                # Check format of result for second match too
-                winner, scores = result
-                if winner == player1.ai.name:  # player1 won
+                winner, _ = result 
+                if winner == player1.ai.name:
                     player1.games_won += 1
-                
                 player1.games_played += 1
-    
-    # Calculate fitness
+
+    # Calculate fitness with emphasis on champion performance
     for individual in population:
         if individual.games_played > 0:
             individual.fitness = individual.games_won / individual.games_played
@@ -140,25 +160,30 @@ def crossover(parent1, parent2, crossover_rate=0.7):
     
     return child1, child2
 
-def mutation(individual, mutation_rate=0.2, mutation_amount=10):
-    """Apply mutation to an individual"""
+def mutation(individual, mutation_rate=0.3, mutation_amount=15):
+    """Enhanced mutation with adaptive rates"""
     if random.random() > mutation_rate:
         return individual
     
-    # Choose which weights to mutate
+    # Adaptive mutation - more likely to mutate weights far from champion
+    champion_diff = abs(individual.minimax_weight - CHAMPION_CONFIG.minimax_weight) + \
+                   abs(individual.mcts_weight - CHAMPION_CONFIG.mcts_weight) + \
+                   abs(individual.random_weight - CHAMPION_CONFIG.random_weight)
+    
+    # Adjust mutation amount based on difference
+    adaptive_amount = int(mutation_amount * (1 + champion_diff/100))
+    
     weights_to_mutate = random.sample(['minimax', 'mcts', 'random'], random.randint(1, 2))
     
     for weight in weights_to_mutate:
         if weight == 'minimax':
-            individual.minimax_weight += random.randint(-mutation_amount, mutation_amount)
+            individual.minimax_weight += random.randint(-adaptive_amount, adaptive_amount)
         elif weight == 'mcts':
-            individual.mcts_weight += random.randint(-mutation_amount, mutation_amount)
-        else:  # random
-            individual.random_weight += random.randint(-mutation_amount, mutation_amount)
+            individual.mcts_weight += random.randint(-adaptive_amount, adaptive_amount)
+        else:
+            individual.random_weight += random.randint(-adaptive_amount, adaptive_amount)
     
-    # Normalize weights
     normalize_weights(individual)
-    
     return individual
 
 def normalize_weights(individual):
@@ -229,9 +254,32 @@ def save_results(hall_of_fame, generation_results, output_dir="evolution_results
     except Exception as e:
         print(f"Error saving evolved player: {e}")
 
-def evolve_hybrid_ai(population_size=10, generations=5, board_size=7, num_rounds=3, verbose=False):
+def calculate_total_games(population_size: int, num_rounds: int, generations: int) -> int:
+    """Calculate total number of games that will be played"""
+    games_per_individual = num_rounds * 2  # Against champion (both positions)
+    games_per_individual += num_rounds * 2 * 3  # Against 3 random opponents (both positions)
+    total_per_generation = games_per_individual * population_size
+    return total_per_generation * generations
+
+def evolve_hybrid_ai(population_size=10, 
+                    generations=5, 
+                    board_size=7, 
+                    num_rounds=3, 
+                    tournament_size=3,
+                    mutation_rate=0.2,
+                    crossover_rate=0.7,
+                    verbose=False):
     """Run evolutionary optimization for HybridAI"""
-    print(f"Starting evolutionary optimization with population={population_size}, generations={generations}")
+    print(f"Starting evolutionary optimization with:")
+    print(f"  Population: {population_size}")
+    print(f"  Generations: {generations}")
+    print(f"  Tournament size: {tournament_size}")
+    print(f"  Mutation rate: {mutation_rate}")
+    print(f"  Crossover rate: {crossover_rate}")
+    
+    # Calculate total games for progress tracking
+    total_games = calculate_total_games(population_size, num_rounds, generations)
+    games_played = 0
     
     # Initialize population
     population = [HybridIndividual() for _ in range(population_size)]
@@ -241,8 +289,21 @@ def evolve_hybrid_ai(population_size=10, generations=5, board_size=7, num_rounds
     for generation in range(generations):
         print(f"\n== Generation {generation+1}/{generations} ==")
         
+        # Track games in this generation
+        games_before = games_played
+        
         # Run tournament for this generation
         sorted_pop = run_tournament_generation(population, board_size, num_rounds, verbose)
+        
+        # Update games played counter
+        games_played = (generation + 1) * population_size * (num_rounds * 2 + num_rounds * 2 * 3)
+        
+        # Calculate and display progress
+        progress = (games_played / total_games) * 100
+        games_this_gen = games_played - games_before
+        print(f"\nProgress: {progress:.1f}% complete")
+        print(f"Games played this generation: {games_this_gen}")
+        print(f"Total games played: {games_played}/{total_games}")
         
         # Store best individual in hall of fame
         best_individual = sorted_pop[0]
@@ -266,24 +327,26 @@ def evolve_hybrid_ai(population_size=10, generations=5, board_size=7, num_rounds
         save_results(hall_of_fame, generation_results)
         
         if generation < generations - 1:
-            # Selection
-            parents = selection(sorted_pop)
+            # Selection with custom tournament size
+            parents = selection(sorted_pop, tournament_size=tournament_size)
             
             # Create new population
             new_population = []
             while len(new_population) < population_size:
                 parent1, parent2 = random.sample(parents, 2)
-                child1, child2 = crossover(parent1, parent2)
+                # Use custom crossover rate
+                child1, child2 = crossover(parent1, parent2, crossover_rate=crossover_rate)
                 
-                child1 = mutation(child1)
-                child2 = mutation(child2)
+                # Use custom mutation rate
+                child1 = mutation(child1, mutation_rate=mutation_rate)
+                child2 = mutation(child2, mutation_rate=mutation_rate)
                 
                 new_population.append(child1)
                 if len(new_population) < population_size:
                     new_population.append(child2)
             
             population = new_population
-    
+
     # Final results
     print("\nEvolution complete!")
     print("\nHall of Fame (Best from each generation):")

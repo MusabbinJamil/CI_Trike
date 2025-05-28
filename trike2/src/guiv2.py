@@ -7,6 +7,7 @@ import json
 import os
 # Add these imports for AI support
 from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI, HybridAI, DQNAI
+from trike_ai.agents.evolved_strategic_ai import EvolvedStrategicAI
 import threading
 import time
 
@@ -578,7 +579,7 @@ class TrikeGUI:
             player_frame,
             self.player1_type,
             "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", 
-            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay",
+            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay", "EvolvedStrategicAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 0)
         )
         player1_options.config(font=FONT_LARGE, width=15)
@@ -605,7 +606,7 @@ class TrikeGUI:
             player_frame,
             self.player2_type,
             "Human", "RandomAI", "MinimaxAI-Easy", "MinimaxAI-Hard", "MCTSAI", "HybridAI", 
-            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay",
+            "DQNAI", "DQNAI-Advanced", "DQNAI-SelfPlay", "EvolvedStrategicAI",
             command=lambda selection: self.update_player_name_from_ai(selection, 1)
         )
         player2_options.config(font=FONT_LARGE, width=15)
@@ -756,6 +757,54 @@ class TrikeGUI:
                 dqn.load_model("models/DQN_SelfPlay_Final_1000ep.pt/DQN_Main.pt")
                 dqn.epsilon = 0.05  # Set low epsilon for mostly exploitation
                 return dqn
+            elif ai_type == "EvolvedStrategicAI":
+                # Load the best evolved AI
+                try:
+                    with open("evolved_strategic_players/best_strategic_ai.json", "r") as f:
+                        best_data = json.load(f)
+                    
+                    best_ai_data = best_data["best_strategic_ai"]
+                    
+                    # Ensure board_size is set if missing
+                    if 'board_size' not in best_ai_data:
+                        best_ai_data['board_size'] = self.game.board.size if hasattr(self, 'game') and self.game else 7
+                    
+                    evolved_ai = EvolvedStrategicAI.from_dict(best_ai_data)
+                    evolved_ai.name = f"{player_name} (Evolved)"
+                    return evolved_ai
+                except FileNotFoundError:
+                    print("No evolved AI found. Creating random strategic AI.")
+                    # Fallback to random strategic AI if no evolved one exists
+                    board_size = self.game.board.size if hasattr(self, 'game') and self.game else 7
+                    return EvolvedStrategicAI(name=f"{player_name} (Random Strategic)", board_size=board_size)
+                except KeyError as e:
+                    print(f"Missing key in evolved AI data: {e}. Creating random strategic AI.")
+                    board_size = self.game.board.size if hasattr(self, 'game') and self.game else 7
+                    return EvolvedStrategicAI(name=f"{player_name} (Random Strategic)", board_size=board_size)
+                except Exception as e:
+                    print(f"Error loading evolved AI: {e}. Creating random strategic AI.")
+                    board_size = self.game.board.size if hasattr(self, 'game') and self.game else 7
+                    return EvolvedStrategicAI(name=f"{player_name} (Random Strategic)", board_size=board_size)
+            # elif ai_type.startswith("Evolved-Top"):
+            #     # Extract which top AI to load
+            #     top_number = int(ai_type.split("Top")[1].split(" ")[0]) - 1
+                
+            #     try:
+            #         with open("evolved_strategic_players/hall_of_fame.json", "r") as f:
+            #             hall_of_fame = json.load(f)
+                    
+            #         if top_number < len(hall_of_fame):
+            #             ai_data = hall_of_fame[top_number]
+            #             evolved_ai = EvolvedStrategicAI.from_dict(ai_data)
+            #             evolved_ai.name = f"{player_name} ({ai_type})"
+            #             return evolved_ai
+            #         else:
+            #             print(f"Top {top_number + 1} AI not found in hall of fame")
+            #             return EvolvedStrategicAI(name=f"{player_name} (Random Strategic)")
+                        
+            #     except FileNotFoundError:
+            #         print("No hall of fame found. Creating random strategic AI.")
+            #         return EvolvedStrategicAI(name=f"{player_name} (Random Strategic)")
             else:
                 return None
         except Exception as e:
@@ -1158,6 +1207,26 @@ class TrikeGUI:
                 self.save_score(self.winner_name)
             # Close the window after a short delay
             self.root.after(1000, self.root.destroy)
+    
+    # load specific evolved AIs
+    # def load_evolved_ai_options(self):
+    #     """Load available evolved AIs and add them to the GUI options"""
+    #     evolved_options = ["EvolvedStrategicAI"]
+        
+    #     # Check if hall of fame exists
+    #     try:
+    #         with open("evolved_strategic_players/hall_of_fame.json", "r") as f:
+    #             hall_of_fame = json.load(f)
+            
+    #         # Add top performers from hall of fame
+    #         for i, individual in enumerate(hall_of_fame[:5]):  # Top 5
+    #             fitness = individual.get('fitness', 0)
+    #             evolved_options.append(f"Evolved-Top{i+1} ({fitness:.1%})")
+                
+    #     except FileNotFoundError:
+    #         pass
+        
+    #     return evolved_options
 
 if __name__ == "__main__":
     import argparse
