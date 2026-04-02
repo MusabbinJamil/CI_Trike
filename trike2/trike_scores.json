@@ -1,10 +1,10 @@
 {
-    "RandomAI": 23,
+    "RandomAI": 25,
     "HybridAI": 8,
     "DQNAI": 5,
     "DQNAI2": 1,
-    "Player 1": 4,
-    "DQNAI-Advanced": 20,
+    "Player 1": 5,
+    "DQNAI-Advanced": 24,
     "DQNAI-SelfPlay": 3,
     "MinimaxAI-Easy": 1,
     "Player 2": 3,

@@ -1,0 +1,72 @@
+{
+  "RandomAI": {
+    "total_games": 2400,
+    "wins": 1470,
+    "losses": 930,
+    "draws": 0,
+    "total_score": 6239,
+    "opponent_scores": 5627,
+    "win_rate": 0.6125,
+    "loss_rate": 0.3875,
+    "draw_rate": 0.0,
+    "avg_score": 2.5995833333333334,
+    "avg_opponent_score": 2.3445833333333335,
+    "score_differential": 0.2549999999999999
+  },
+  "MinimaxAI-Hard": {
+    "total_games": 2400,
+    "wins": 1521,
+    "losses": 879,
+    "draws": 0,
+    "total_score": 6450,
+    "opponent_scores": 6332,
+    "win_rate": 0.63375,
+    "loss_rate": 0.36625,
+    "draw_rate": 0.0,
+    "avg_score": 2.6875,
+    "avg_opponent_score": 2.638333333333333,
+    "score_differential": 0.0491666666666668
+  },
+  "MCTSAI": {
+    "total_games": 2400,
+    "wins": 18,
+    "losses": 2382,
+    "draws": 0,
+    "total_score": 4310,
+    "opponent_scores": 6966,
+    "win_rate": 0.0075,
+    "loss_rate": 0.9925,
+    "draw_rate": 0.0,
+    "avg_score": 1.7958333333333334,
+    "avg_opponent_score": 2.9025,
+    "score_differential": -1.1066666666666665
+  },
+  "DQNAI-Advanced": {
+    "total_games": 2400,
+    "wins": 1456,
+    "losses": 944,
+    "draws": 0,
+    "total_score": 6282,
+    "opponent_scores": 5686,
+    "win_rate": 0.6066666666666667,
+    "loss_rate": 0.3933333333333333,
+    "draw_rate": 0.0,
+    "avg_score": 2.6175,
+    "avg_opponent_score": 2.3691666666666666,
+    "score_differential": 0.24833333333333352
+  },
+  "EvolvedStrategicAI-Best": {
+    "total_games": 2400,
+    "wins": 1535,
+    "losses": 865,
+    "draws": 0,
+    "total_score": 6613,
+    "opponent_scores": 5283,
+    "win_rate": 0.6395833333333333,
+    "loss_rate": 0.36041666666666666,
+    "draw_rate": 0.0,
+    "avg_score": 2.7554166666666666,
+    "avg_opponent_score": 2.20125,
+    "score_differential": 0.5541666666666667
+  }
+}

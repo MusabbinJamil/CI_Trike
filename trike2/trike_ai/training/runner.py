@@ -3,76 +3,93 @@ from trike_ai.agents import RandomAI, MinimaxAI, MCTSAI
 
 def run_ai_match(agent1, agent2, board_size=7, verbose=True):
     """
-    Run a match between two AI agents.
-    
-    Args:
-        agent1: First AI agent
-        agent2: Second AI agent
-        board_size: Size of the game board
-        verbose: Whether to print game progress
+    Run a match between two AI agents and return detailed results.
     
     Returns:
-        tuple: (winner, scores) where winner is the name of the winning agent or "Draw"
-               and scores is (agent1_score, agent2_score)
+        dict: Match results including winner, scores, and game statistics
     """
-    game = Game(board_size)
+    # Initialize game
+    game = Game(board_size=board_size)
+    game.setup_players()
+    
+    # Track game statistics
+    total_moves = 0
+    start_time = time.time()
+    
+    # Assign agents to players
+    agents = [agent1, agent2]
     
     if verbose:
-        print(f"Starting match: {agent1.name} vs {agent2.name}")
+        print(f"Match: {agent1.name} vs {agent2.name}")
+        print(f"Board size: {board_size}x{board_size}")
+        print("-" * 40)
     
-    # Continue until the game is over
-    while not (game.pawn.position is not None and game.board.is_pawn_trapped()):
+    # Game loop
+    while not game.is_game_over():
         current_player_index = game.current_player_index
-        current_agent = agent1 if current_player_index == 0 else agent2
+        current_agent = agents[current_player_index]
         
-        # Get the agent's move
-        move = current_agent.choose_move(game)
-        
-        if move is None:
-            if verbose:
-                print(f"No valid moves available for {current_agent.name}")
-            break
+        try:
+            # Get move from AI
+            move = current_agent.get_move(game)
             
-        if verbose:
-            print(f"{current_agent.name} chooses move: {move}")
+            if move is None:
+                if verbose:
+                    print(f"{current_agent.name} returned None move - game may be over")
+                break
             
-        # Apply the move
-        q, r = move
-        current_player = game.players[current_player_index]
-        
-        # If this is first move, place pawn
-        if game.pawn.position is None:
-            game.board.place_checker(q, r, current_player)
-            game.pawn.position = (q, r)
-            game.board.pawn_position = (q, r)
-        else:
-            # Regular move - place checker and move pawn
-            game.board.place_checker(q, r, current_player)
-            game.pawn.position = (q, r)
-            game.board.pawn_position = (q, r)
-        
-        # Pie rule implementation
-        if game.first_move_done and game.pie_rule_available:
-            if current_player_index == 1:
-                # Simple heuristic for pie rule: use it if the first move was
-                # too advantageous (e.g., central position)
-                size = board_size
-                center_q, center_r = size // 2, size // 2
-                
-                # If first move was close to center, agent2 might choose to swap
-                if abs(q - center_q) + abs(r - center_r) <= 1:
+            # Apply the move
+            q, r = move
+            
+            if game.pawn.position is None:
+                # First move - place pawn
+                if game.board.is_valid_position(q, r):
+                    game.place_pawn(q, r)
+                    total_moves += 1
                     if verbose:
-                        print(f"{agent2.name} uses pie rule to swap colors")
-                    game.players.reverse()
-                    game.current_player_index = 1
+                        print(f"{current_agent.name} placed pawn at ({q}, {r})")
+                else:
+                    if verbose:
+                        print(f"Invalid pawn placement by {current_agent.name}")
+                    break
+            else:
+                # Regular move
+                q_from, r_from = game.pawn.position
+                if game.board.is_valid_move(q_from, r_from, q, r):
+                    # Place stone and move pawn
+                    current_player = game.players[current_player_index]
+                    game.board.place_stone(q_from, r_from, current_player.color)
+                    game.pawn.move_to(q, r)
+                    total_moves += 1
+                    
+                    if verbose:
+                        print(f"{current_agent.name} moved pawn from ({q_from}, {r_from}) to ({q}, {r})")
+                else:
+                    if verbose:
+                        print(f"Invalid move by {current_agent.name}")
+                    break
             
-            game.pie_rule_available = False
-        else:
-            # Normal turn, advance to next player
-            game.current_player_index = (current_player_index + 1) % 2
+            # Switch to next player
+            game.current_player_index = (game.current_player_index + 1) % 2
+            
+        except Exception as e:
+            if verbose:
+                print(f"Error during {current_agent.name}'s turn: {e}")
+            break
     
     # Calculate final scores
     pawn_pos = game.pawn.position
+    if pawn_pos is None:
+        # Game ended without proper completion
+        return {
+            'winner': 'Draw',
+            'player1_score': 0,
+            'player2_score': 0,
+            'total_moves': total_moves,
+            'game_duration': time.time() - start_time,
+            'error': 'Game ended without pawn placement'
+        }
+    
     neighbors = game.board.get_neighbors(*pawn_pos)
     under = game.board.grid[pawn_pos]
     
@@ -93,15 +110,23 @@ def run_ai_match(agent1, agent2, board_size=7, verbose=True):
     elif player2_score > player1_score:
         winner = agent2.name
     else:
-        winner = "Draw"
+        winner = 'Draw'
+    
+    game_duration = time.time() - start_time
     
     if verbose:
-        print(f"Game over! Final scores:")
-        print(f"{agent1.name}: {player1_score}")
-        print(f"{agent2.name}: {player2_score}")
+        print(f"Final scores: {agent1.name}: {player1_score}, {agent2.name}: {player2_score}")
         print(f"Winner: {winner}")
+        print(f"Total moves: {total_moves}")
+        print(f"Game duration: {game_duration:.2f} seconds")
     
-    return winner, (player1_score, player2_score)
+    return {
+        'winner': winner,
+        'player1_score': player1_score,
+        'player2_score': player2_score,
+        'total_moves': total_moves,
+        'game_duration': game_duration
+    }
 
 
 if __name__ == "__main__":

@@ -1,0 +1,42 @@
+{
+  "RandomAI": {
+    "total_games": 0,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "total_score": 0,
+    "opponent_scores": 0
+  },
+  "MinimaxAI-Hard": {
+    "total_games": 0,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "total_score": 0,
+    "opponent_scores": 0
+  },
+  "MCTSAI": {
+    "total_games": 0,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "total_score": 0,
+    "opponent_scores": 0
+  },
+  "DQNAI-Advanced": {
+    "total_games": 0,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "total_score": 0,
+    "opponent_scores": 0
+  },
+  "EvolvedStrategicAI-Best": {
+    "total_games": 0,
+    "wins": 0,
+    "losses": 0,
+    "draws": 0,
+    "total_score": 0,
+    "opponent_scores": 0
+  }
+}

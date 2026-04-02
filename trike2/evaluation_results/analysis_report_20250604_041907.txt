@@ -1,0 +1,81 @@
+AI PERFORMANCE EVALUATION REPORT
+==================================================
+
+Evaluation completed at: 2025-06-04 04:19:07
+Total agents evaluated: 5
+
+RANKING BY WIN RATE:
+------------------------------
+1. EvolvedStrategicAI-Best
+   Win Rate: 0.640 (1535/2400)
+   Avg Score: 2.76
+   Score Differential: 0.55
+
+2. MinimaxAI-Hard
+   Win Rate: 0.634 (1521/2400)
+   Avg Score: 2.69
+   Score Differential: 0.05
+
+3. RandomAI
+   Win Rate: 0.613 (1470/2400)
+   Avg Score: 2.60
+   Score Differential: 0.25
+
+4. DQNAI-Advanced
+   Win Rate: 0.607 (1456/2400)
+   Avg Score: 2.62
+   Score Differential: 0.25
+
+5. MCTSAI
+   Win Rate: 0.007 (18/2400)
+   Avg Score: 1.80
+   Score Differential: -1.11
+
+
+DETAILED STATISTICS:
+------------------------------
+
+EvolvedStrategicAI-Best:
+  Games Played: 2400
+  Wins: 1535 (0.640)
+  Losses: 865 (0.360)
+  Draws: 0 (0.000)
+  Average Score: 2.76
+  Average Opponent Score: 2.20
+  Score Differential: 0.55
+
+MinimaxAI-Hard:
+  Games Played: 2400
+  Wins: 1521 (0.634)
+  Losses: 879 (0.366)
+  Draws: 0 (0.000)
+  Average Score: 2.69
+  Average Opponent Score: 2.64
+  Score Differential: 0.05
+
+RandomAI:
+  Games Played: 2400
+  Wins: 1470 (0.613)
+  Losses: 930 (0.388)
+  Draws: 0 (0.000)
+  Average Score: 2.60
+  Average Opponent Score: 2.34
+  Score Differential: 0.25
+
+DQNAI-Advanced:
+  Games Played: 2400
+  Wins: 1456 (0.607)
+  Losses: 944 (0.393)
+  Draws: 0 (0.000)
+  Average Score: 2.62
+  Average Opponent Score: 2.37
+  Score Differential: 0.25
+
+MCTSAI:
+  Games Played: 2400
+  Wins: 18 (0.007)
+  Losses: 2382 (0.993)
+  Draws: 0 (0.000)
+  Average Score: 1.80
+  Average Opponent Score: 2.90
+  Score Differential: -1.11
